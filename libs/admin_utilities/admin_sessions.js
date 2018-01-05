@@ -1,19 +1,18 @@
 // * ———————————————————————————————————————————————————————— * //
 // * 	Enduro Admin login sessions
 // * ———————————————————————————————————————————————————————— * //
-const admin_sessions = function () {}
+var admin_sessions = function () {}
 
-// * vendor dependencies
-// * vendor dependencies
-const Promise = require('bluebird')
-const moment = require('moment')
+// vendor dependencies
+var Promise = require('bluebird')
+var moment = require('moment')
 
-// * enduro dependencies
-const admin_security = require(enduro.enduro_path + '/libs/admin_utilities/admin_security')
-const logger = require(enduro.enduro_path + '/libs/logger')
+// local dependencies
+var admin_security = require(enduro.enduro_path + '/libs/admin_utilities/admin_security')
+var logger = require(enduro.enduro_path + '/libs/logger')
 
 // constants
-const SESSION_LIFETIME = 30 // in minutes
+var SESSION_LIFETIME = 60 // in minutes
 
 admin_sessions.prototype.create_session = function (req, user) {
 	return new Promise(function (resolve, reject) {

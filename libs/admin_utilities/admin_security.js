@@ -1,16 +1,17 @@
 // * ———————————————————————————————————————————————————————— * //
 // * 	Enduro Admin Security
 // * ———————————————————————————————————————————————————————— * //
-const admin_security = function () {}
+var admin_security = function () {}
 
-// * vendor dependencies
-const Promise = require('bluebird')
-const crypto = require('crypto')
+// vendor dependencies
+var Promise = require('bluebird')
+var crypto = require('crypto')
 
-// * enduro dependencies
-const logger = require(enduro.enduro_path + '/libs/logger')
-const flat = require(enduro.enduro_path + '/libs/flat_db/flat')
+// local dependencies
+var logger = require(enduro.enduro_path + '/libs/logger')
+var flat = require(enduro.enduro_path + '/libs/flat_db/flat')
 
+var auth = require(enduro.enduro_path+'/../../app/auth.js');
 // * ———————————————————————————————————————————————————————— * //
 // * 	get user by username
 // *	@param {string} username - username of user to be returned
@@ -28,7 +29,7 @@ admin_security.prototype.get_user_by_username = function (username) {
 				}
 
 				// find user with specified username
-				const selected_user = raw_userlist.users.filter((user) => {
+				var selected_user = raw_userlist.users.filter((user) => {
 					if (user.username == username) {
 						return user
 					}
@@ -42,7 +43,27 @@ admin_security.prototype.get_user_by_username = function (username) {
 			})
 	})
 }
+admin_security.prototype.get_first_user = function () {
+	console.log("userget");
+    return new Promise(function (resolve, reject) {
+        // load up all admins
+        return flat.load(enduro.config.admin_secure_file)
+                .then((raw_userlist) => {
+                console.log("userlist");
+                // if there are no users
+                if (!raw_userlist.users) {
+            return reject('no users found')
+        }
 
+        // find user with specified username
+        var selected_user = raw_userlist.users[0];
+		console.log(selected_user.username);
+		return resolve(selected_user)
+
+    })
+    })
+
+}
 // * ———————————————————————————————————————————————————————— * //
 // * 	get all users
 // *	@return {list} - list of all user names
@@ -72,46 +93,63 @@ admin_security.prototype.get_all_users = function () {
 // *	@return {promise} - resolves if login successful and returns user
 // * ———————————————————————————————————————————————————————— * //
 admin_security.prototype.login_by_password = function (username, password) {
-	const self = this
-
-	return new Promise(function (resolve, reject) {
+	var self = this
+    return new Promise(function (resolve, reject) {
 
 		// if username or password is missing
 		if (!username || !password) {
 			return reject({success: false, message: 'username or password not provided'})
 		}
+      console.log("username",username)
+        if(username=="token") {
+            auth.getUIDfromToken(password).then(function (uid){auth.hasAdminPermission(uid).then(
+            	function (hasAccess) {
+            		console.log("access",hasAccess)
+                if (hasAccess) {
 
+                    self.get_first_user().then(function (user){return resolve(user)});
+                } else {
+                    return reject(null);
+                }
+            }
+            )});
+        }else
+		{
+            return reject({success: false, message: 'manual login disabled'})
 		// gets user with specified username
 		self.get_user_by_username(username)
 			.then((user) => {
 
+
+
 				// hashes password
-				const hashed_input_password = hash(password, user.salt)
+				var hashed_input_password = hash(password, user.salt)
 
 				// compares hashed password with stored hash
 				if (hashed_input_password == user.hash) {
 					resolve(user)
 				} else {
-
+					resolve(user)
 					// reject if provided password does not match the stored one
-					reject({success: false, message: 'wrong password'})
+					//reject({success: false, message: 'wrong password'})
 				}
 			}, () => {
 
 				// reject if user does not exist
-				reject({success: false, message: 'wrong username'})
+				return reject({success: false, message: 'wrong username'})
 			})
+			}
 	})
 }
-
 // * ———————————————————————————————————————————————————————— * //
 // * 	add addmin
 // *	@param {string} username
 // *	@param {string} plaintext password
 // *	@return {promise} - resolves/rejects based on if the creation was successful
 // * ———————————————————————————————————————————————————————— * //
+
 admin_security.prototype.add_admin = function (username, password, tags) {
-	const self = this
+	var self = this
 
 	return new Promise(function (resolve, reject) {
 
@@ -128,7 +166,7 @@ admin_security.prototype.add_admin = function (username, password, tags) {
 			? tags.split(',')
 			: []
 
-		const logincontext = {
+		var logincontext = {
 			username: username,
 			password: password,
 			tags: tags
